@@ -1,0 +1,109 @@
+# Ransomware Collectors
+
+This file indicates [very draftly] the different steps necessary to find ransomware collectors (as explained in the paper). The method consists of taking into account, for each expanded address, all the outgoing transactions and their respective outputs. 
+
+With this, an outgoing-relationships graph can be built for each ransomware family. The nodes in the graph are either the expanded addresses or the addresses receiving money from the expanded addresses. The edges in the graph illustrate the direction of the monetary flow. We consider that each node that has indegree ≥ 2, in a family specific outgoing-relationships graph, is a collector address for this ransomware family.
+
+The below R script creates a graph object to calculate the number of in-degree relations an outgoing relationship graph related to a ransomware family.
+
+## Load libraries
+```
+library(plyr)
+library(sna)
+library(igraph)
+```
+
+## Create a dataframe with the outgoing_relationship file  
+```
+rel_outgoing <- data.frame(expanded_rel_outgoing)
+
+#rename columns based on what they represent
+rel_outgoing<-rename(rel_outgoing, c("X1"="address", "X2"="family", "X3" = "cluster", "X4"="dstAddress", "X5"="estimatedValueUSD", "X6"="estimatedValueSATOSHI", "X7"="noTransactions"))
+```
+
+## Create a subset dataframe for each ransomware family (example shown with locky)
+```
+Locky<-subset(rel_outgoing, rel_outgoing$family == 'Locky')
+```
+## Shift Columns in the dataframe to have directed relationships
+```
+Locky<-Locky[,c(1,4,3,2,5,6)]
+```
+
+## For each subset dataframe, create a vertices file 
+```
+locky_vertices1 = unique(Locky[c(1)])
+locky_vertices1$source = locky_vertices1$source = 1
+#note : all source addresses (addresses that send money) are related to ransomware since they are part of the expanded dataset
+
+locky_vertices2 = unique(Locky[c(2)])
+locky_vertices2$source = locky_vertices2$source = 0
+locky_vertices2= rename(locky_vertices2, c("dstAddress" = "address", "source"="source"))
+
+locky_vertices = rbind(locky_vertices1, locky_vertices2)
+locky_vertices <- locky_vertices[order(locky_vertices$source),] 
+locky_vertices<-locky_vertices[ !duplicated(locky_vertices$address), ]
+
+````
+
+## Create a graph object with the dataframe
+```
+g_Locky<-graph_from_data_frame(Locky, directed=TRUE, vertices= Locky_vertices)
+````
+
+## Calculate number of indegree relationships for each vertice in the graph 
+```
+indegree<-degree(g_Locky,v=V(g_Locky),mode="in")
+indegree<-data.frame(indegree)
+
+#Rename columns 
+indegree <- cbind(Row.Names = rownames(indegree), indegree)
+rownames(indegree) <- NULL
+colnames(indegree)<-c("Address", "indegree")
+
+#Rename dataframe 
+Locky_relation<-indegree
+Locky_relation$family<-"Locky"
+````
+
+### Do this for all ransomware families 
+_Note: These 4 families are in the blockchain, but do not have outgoing relationships 7ev3n, Bucbi, CryptoHost, CTB-Locker_
+
+## Combine vertice and relation dataframes from each ransomware family into one large file 
+```
+#Merge each relation dataframes 
+All_merged <- rbind(Locky_relation, VenusLocker_relation, Flyper_relation, Cryptohitman_relation, TowerWeb_relation, XTPLocker_relation, Globev3_relation, CryptConsole_relation, NotPetya_relation, APT_relation, WannaCry_relation, DMALocker_relation, GlobeImposter_relation, Exotic_relation, Razy_relation, Xorist_relation, ComradeCircle_relation, Phoenix_relation, Chimera_relation, NullByte_relation, PopCornTime_relation, CryptoLocker_relation, CryptXXX_relation, EDA2_relation, DMALockerv3_relation, Globe_relation, SamSam_relation, JigSaw_relation, NoobCrypt_relation, CryptoTorLocker2015_relation, flyper_relation)
+
+#Merge all vertices DATAFRAME 
+all_merged_vertices <- rbind(Locky_vertices, VenusLocker_vertices, Flyper_vertices, Cryptohitman_vertices, TowerWeb_vertices, XTPLocker_vertices, Globev3_vertices, CryptConsole_vertices, NotPetya_vertices, APT_vertices, WannaCry_vertices, DMALocker_vertices, GlobeImposter_vertices, Exotic_vertices, Razy_vertices, Xorist_vertices, ComradeCircle_vertices, Phoenix_vertices, Chimera_vertices, NullByte_vertices, PopCornTime_vertices, CryptoLocker_vertices, CryptXXX_vertices, EDA2_vertices, DMALockerv3_vertices, Globe_vertices, SamSam_vertices, JigSaw_vertices, NoobCrypt_vertices, CryptoTorLocker2015_vertices, flyper_vertices)
+
+#Rename column 
+colnames(all_merged_vertices)[1] <- "Address"
+
+#Merge both dataframes
+Total<- merge(all_merged, all_merged_vertices, by="Address")
+
+#Remove duplicate rows 
+Total[!duplicated(Total), ]
+````
+
+## Create a tag on collectors based on whether they are ransomware addresses or not
+```
+#Create a flag for all addresses that were already in the dataset with indegree > (or equal) to 2
+Total$New_collector[(Total$indegree > 1 & Total$source == 0)]<- 1 
+Total$New_collector[is.na(Total$New_collector)]<-0
+
+#Create a flag for all addresses not in the dataset with indegree > (or equal) to 2
+Total$Collector_in_cluster[(Total$indegree > 1 & Total$source == 1) ] <- 1 
+Total$Collector_in_cluster[is.na(Total$Collector_in_cluster)]<-0
+
+#Create a flag for both 
+Total_new_collectors<-subset(Total, Total$New_collector==1 | Total$Collector_in_cluster ==1)
+
+```
+
+## Write results in CSV 
+```
+#Write in csv file 
+write.csv(Total_new_collectors, file = "path\document_name.csv")
+```

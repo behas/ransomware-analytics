@@ -1,0 +1,16 @@
+_archive
+_backup
+dataset/blockchain/
+fetch_dataset_hdfs.sh
+*.tar.gz
+.RData
+
+
+plots/
+*.nb.html
+.DS_Store
+.Rhistory
+.Rproj.user/
+R.Rproj
+.Rproj.user
+empirical_analysis_files/
