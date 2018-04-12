@@ -1,19 +1,19 @@
 # Ransomware Collectors
 
-This file indicates [very draftly] the different steps necessary to find ransomware collectors (as explained in the paper). The method consists of taking into account, for each expanded address, all the outgoing transactions and their respective outputs. 
+This file indicates (very draftly) the different steps necessary to find ransomware collectors (as explained in the paper). The method consists of taking into account, for each expanded address, all the outgoing transactions and their respective outputs. 
 
 With this, an outgoing-relationships graph can be built for each ransomware family. The nodes in the graph are either the expanded addresses or the addresses receiving money from the expanded addresses. The edges in the graph illustrate the direction of the monetary flow. We consider that each node that has indegree ≥ 2, in a family specific outgoing-relationships graph, is a collector address for this ransomware family.
 
 The below R script creates a graph object to calculate the number of in-degree relations an outgoing relationship graph related to a ransomware family.
 
-## Load libraries
+## Load essential libraries 
 ```
 library(plyr)
 library(sna)
 library(igraph)
 ```
 
-## Create a dataframe with the outgoing_relationship file  
+## Create a dataframe with the outgoing_relationship file from the data extraction  
 ```
 rel_outgoing <- data.frame(expanded_rel_outgoing)
 
@@ -30,7 +30,7 @@ Locky<-subset(rel_outgoing, rel_outgoing$family == 'Locky')
 Locky<-Locky[,c(1,4,3,2,5,6)]
 ```
 
-## For each subset dataframe, create a vertices file 
+## For each subset dataframe, create a _vertices_ file 
 ```
 locky_vertices1 = unique(Locky[c(1)])
 locky_vertices1$source = locky_vertices1$source = 1
