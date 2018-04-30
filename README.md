@@ -1,6 +1,6 @@
 # Ransomware Payments in the Bitcoin Ecosystem | Analytics
 
-This repository contains procedures for analyzing the expanded ransomware
+This repository contains the official procedure for analyzing the expanded ransomware
 dataset produced by the extraction procedure available in [this repository](https://github.com/behas/ransomware-dataset).
 
 
